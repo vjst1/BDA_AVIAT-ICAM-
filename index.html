@@ -1,0 +1,719 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aviat'icam - Arcade</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #00f0ff; --bg-dark: #050510; --accent: #ff0055; --panel-color: #ffaa00;
+            --glass-bg: rgba(10, 10, 30, 0.65);
+        }
+        body {
+            margin: 0; font-family: 'Orbitron', sans-serif;
+            background: linear-gradient(-45deg, #0a0a1a, #1a1a3a, #0d1b2a, #050015);
+            background-size: 400% 400%; animation: gradientBG 15s ease infinite;
+            color: #e0e0ff; min-height: 100vh; overflow-x: hidden;
+            display: flex; flex-direction: column; align-items: center;
+        }
+        @keyframes gradientBG { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
+        
+        header {
+            margin-top: 25px; font-size: 46px; font-weight: 900; letter-spacing: 6px; text-transform: uppercase;
+            background: linear-gradient(to right, var(--primary), var(--panel-color), var(--accent)); 
+            -webkit-background-clip: text; color: transparent;
+            text-shadow: 0 0 20px rgba(0, 240, 255, 0.4); margin-bottom: 15px; text-align: center;
+        }
+
+        .container {
+            display: flex; gap: 30px; max-width: 1300px; width: 100%;
+            justify-content: center; align-items: flex-start; padding: 0 20px; box-sizing: border-box;
+        }
+        .main-game { display: flex; flex-direction: column; align-items: center; flex: 1; max-width: 900px; }
+        
+        aside.info-panel {
+            flex: 0 0 320px; padding: 25px; text-align: left;
+            border-top: 4px solid var(--panel-color);
+        }
+        aside.info-panel h2 { 
+            color: var(--panel-color); font-size: 26px; margin-top: 0; text-align: center;
+            text-shadow: 0 0 10px rgba(255, 170, 0, 0.5);
+        }
+        aside.info-panel .subtitle { text-align: center; font-size: 12px; color: #a0a0b0; margin-bottom: 20px; letter-spacing: 2px; }
+        aside.info-panel ul { list-style: none; padding: 0; margin: 0; }
+        aside.info-panel li { 
+            margin: 15px 0; font-size: 13px; background: rgba(0,0,0,0.4); padding: 12px; 
+            border-radius: 8px; border-left: 4px solid var(--panel-color);
+            transition: transform 0.2s ease; cursor: default; line-height: 1.4;
+        }
+        aside.info-panel li:hover { transform: translateX(5px); background: rgba(255, 170, 0, 0.1); }
+
+        #menu { margin: 0 0 20px 0; display: flex; gap: 15px; flex-wrap: wrap; justify-content: center; width: 100%; }
+        button {
+            font-family: 'Orbitron', sans-serif; padding: 12px 20px; font-size: 14px; font-weight: 700;
+            background: rgba(0, 240, 255, 0.05); border: 2px solid var(--primary); color: var(--primary);
+            border-radius: 8px; cursor: pointer; transition: all 0.3s ease; text-transform: uppercase;
+            box-shadow: 0 0 10px rgba(0, 240, 255, 0.1);
+        }
+        button:hover { background: var(--primary); color: #000; transform: translateY(-3px); box-shadow: 0 0 20px rgba(0, 240, 255, 0.6); }
+
+        .glass-panel {
+            background: var(--glass-bg); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 12px; box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.6);
+        }
+        #hud { padding: 15px 30px; margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between; width: 100%; box-sizing: border-box; }
+        input {
+            font-family: 'Orbitron', sans-serif; padding: 8px 12px; border-radius: 6px; border: 1px solid var(--primary);
+            background: rgba(0, 0, 0, 0.6); color: var(--primary); font-size: 14px; outline: none; text-align: center; width: 150px;
+        }
+        
+        canvas {
+            background: linear-gradient(180deg, #1e293b 0%, #38bdf8 100%); border-radius: 10px;
+            box-shadow: 0 0 30px rgba(0, 240, 255, 0.15); display: block; border: 2px solid rgba(0, 240, 255, 0.4); cursor: crosshair;
+            overflow: hidden;
+            transition: transform 0.05s;
+        }
+
+        /* EFFET TREMBLEMENT ECRAN */
+        @keyframes shakeAnim {
+            0% { transform: translate(2px, 2px) rotate(0deg); }
+            20% { transform: translate(-3px, 0px) rotate(1deg); }
+            40% { transform: translate(3px, -2px) rotate(0deg); }
+            60% { transform: translate(-3px, 2px) rotate(-1deg); }
+            80% { transform: translate(2px, -2px) rotate(1deg); }
+            100% { transform: translate(0px, 0px) rotate(0deg); }
+        }
+        .shake-active { animation: shakeAnim 0.3s cubic-bezier(.36,.07,.19,.97) both; }
+        
+        .instructions { font-family: system-ui, sans-serif; font-size: 13px; color: #a0a0b0; margin-top: 15px; background: rgba(0,0,0,0.5); padding: 10px 20px; border-radius: 20px; width: fit-content; }
+        .highlight-score { color: var(--accent); font-weight: bold; text-shadow: 0 0 10px rgba(255, 0, 85, 0.6); }
+        
+        #leaderboard { margin-top: 30px; width: 100%; padding: 20px; text-align: left; margin-bottom: 40px; box-sizing: border-box; position: relative;}
+        ol { column-count: 2; column-gap: 40px; padding-left: 0; margin: 0; list-style-position: inside; }
+        li.score-item { margin-bottom: 10px; font-size: 13px; padding: 8px 15px; background: rgba(255, 255, 255, 0.05); border-left: 3px solid var(--primary); border-radius: 0 8px 8px 0; display: flex; justify-content: space-between; align-items: center;}
+
+        @media (max-width: 1100px) { 
+            .container { flex-direction: column; align-items: center; } 
+            aside.info-panel { width: 100%; max-width: 900px; flex: auto; border-top: none; border-left: 4px solid var(--panel-color); }
+            ol { column-count: 1; }
+        }
+    </style>
+</head>
+<body>
+
+    <header>Aviat'icam</header>
+
+    <div class="container">
+        <div class="main-game">
+            <div id="menu">
+                <button onclick="startFlappy()">Flappy Plane</button>
+                <button onclick="startLanding()">Carrier Landing</button>
+                <button onclick="startShooter()">Drone Battle</button>
+                <button onclick="startBattleship()">Air Battleship</button>
+            </div>
+
+            <div id="hud" class="glass-panel">
+                <div>Pilote : <input id="playerName" type="text" placeholder="Pseudo..."></div>
+                <h2 style="margin: 0; font-size: 22px;">SCORE : <span id="score" class="highlight-score">0</span></h2>
+                <h2 id="level-display" style="margin: 0; font-size: 18px; color: var(--primary); display: none;">ETAGE : <span id="level-num">1</span></h2>
+            </div>
+
+            <canvas id="game" width="900" height="500"></canvas>
+            
+            <div class="instructions">🕹️ <b>ESPACE</b> = Action/Tirer | <b>FLÈCHES</b> = Diriger | <b>R</b> = Recommencer</div>
+
+            <div id="leaderboard" class="glass-panel">
+                <h3 id="leaderboard-title" style="margin-top:0; text-align:center; color: var(--primary); font-size: 18px; text-transform: uppercase;">🏆 Top Pilotes (Général)</h3>
+                <ol id="scores"></ol>
+                <div style="text-align: center; margin-top: 20px;">
+                    <span style="color: #00f0ff; font-size: 12px; font-weight: bold; padding: 8px 15px; border: 1px solid #00f0ff; border-radius: 8px; background: rgba(0, 240, 255, 0.1);">🌍 Serveur Mondial Connecté</span>
+                </div>
+            </div>
+        </div>
+
+        <aside class="info-panel glass-panel">
+            <h2>✈️ Briefing Room</h2>
+            <div class="subtitle">INFOS & HUMOUR DE PILOTE</div>
+            <p style="font-size: 14px; line-height: 1.5; color: #d0d0e0;">Bienvenue dans le cockpit ! En attendant ton prochain vol, voici de quoi te cultiver.</p>
+            <ul>
+                <li>🛫 <b>Le savais-tu ?</b> Les fameuses "boîtes noires" des avions sont en réalité... orange fluo.</li>
+                <li>🤣 <b>La blague :</b> Que fait un avion qui rebondit sur une piste ?<br><i>Il fait Boeing, Boeing, Boeing...</i></li>
+                <li>🚀 <b>Record :</b> Le SR-71 Blackbird détient toujours le record de vitesse avec Mach 3.3.</li>
+            </ul>
+        </aside>
+    </div>
+
+<script type="module">
+    // --- CONNEXION FIREBASE (Le vrai serveur de score !) ---
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
+    import { getFirestore, collection, addDoc, getDocs, query, where, updateDoc, doc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyBHQhUx9qx48kDeTG7Okn7ISA1IcdRkdx4",
+      authDomain: "aviat-icam-f0a2a.firebaseapp.com",
+      projectId: "aviat-icam-f0a2a",
+      storageBucket: "aviat-icam-f0a2a.firebasestorage.app",
+      messagingSenderId: "481755372268",
+      appId: "1:481755372268:web:59c66cc6593fb0a42ca3c9"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    const canvas = document.getElementById("game");
+    const ctx = canvas.getContext("2d");
+    
+    const nameInput = document.getElementById("playerName");
+    if (localStorage.getItem("aviatIcamPseudo")) nameInput.value = localStorage.getItem("aviatIcamPseudo");
+    else nameInput.value = "Maverick"; 
+    nameInput.addEventListener("input", () => { localStorage.setItem("aviatIcamPseudo", nameInput.value); });
+
+    // --- VARIABLES GLOBALES & EASTER EGG ---
+    let playerSprite = "🛩️";
+    let easterEggActive = false;
+    let secretBuffer = "";
+    const gameNames = { "startFlappy": "Flappy Plane", "startLanding": "Carrier Landing", "startShooter": "Drone Battle", "startBattleship": "Air Battleship" };
+    let score = 0, currentInternalLvl = 1, animationId = null, keys = {}, gameState = "MENU", particles = [], currentGame = null;
+    let mouseX = 0, mouseY = 0; 
+
+    // --- AUDIO ---
+    let audioCtx = null;
+    function initAudio() { if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)(); if (audioCtx.state === 'suspended') audioCtx.resume(); }
+    
+    function playSound(type) {
+        if (!audioCtx) return;
+        const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain();
+        osc.connect(gain); gain.connect(audioCtx.destination);
+        let now = audioCtx.currentTime;
+
+        if (type === 'shoot') { osc.type = 'square'; osc.frequency.setValueAtTime(600, now); osc.frequency.exponentialRampToValueAtTime(100, now + 0.15); gain.gain.setValueAtTime(0.05, now); gain.gain.exponentialRampToValueAtTime(0.001, now + 0.15); osc.start(now); osc.stop(now + 0.15); } 
+        else if (type === 'explosion') { osc.type = 'sawtooth'; osc.frequency.setValueAtTime(100, now); osc.frequency.exponentialRampToValueAtTime(10, now + 0.4); gain.gain.setValueAtTime(0.3, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.4); osc.start(now); osc.stop(now + 0.4); } 
+        else if (type === 'hit') { osc.type = 'sawtooth'; osc.frequency.setValueAtTime(150, now); osc.frequency.exponentialRampToValueAtTime(50, now + 0.1); gain.gain.setValueAtTime(0.1, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1); osc.start(now); osc.stop(now + 0.1); } 
+        else if (type === 'success') { osc.type = 'sine'; osc.frequency.setValueAtTime(600, now); osc.frequency.setValueAtTime(900, now + 0.1); gain.gain.setValueAtTime(0.1, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3); osc.start(now); osc.stop(now + 0.3); } 
+        else if (type === 'sonar') { osc.type = 'sine'; osc.frequency.setValueAtTime(800, now); osc.frequency.exponentialRampToValueAtTime(300, now + 0.5); gain.gain.setValueAtTime(0.15, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.5); osc.start(now); osc.stop(now + 0.5); } 
+        else if (type === 'powerup') { osc.type = 'square'; osc.frequency.setValueAtTime(300, now); osc.frequency.setValueAtTime(600, now+0.1); osc.frequency.setValueAtTime(900, now+0.2); gain.gain.setValueAtTime(0.1, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3); osc.start(now); osc.stop(now + 0.3); } 
+        else if (type === 'bomb') { osc.type = 'sawtooth'; osc.frequency.setValueAtTime(50, now); osc.frequency.exponentialRampToValueAtTime(5, now + 1); gain.gain.setValueAtTime(0.5, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 1); osc.start(now); osc.stop(now + 1); }
+    }
+
+    function triggerShake() {
+        canvas.classList.remove("shake-active"); void canvas.offsetWidth; canvas.classList.add("shake-active");
+    }
+
+    // --- CONTROLES & INPUTS ---
+    window.startFlappy = () => { initAudio(); startFlappyGame(); };
+    window.startLanding = () => { initAudio(); startLandingGame(); };
+    window.startShooter = () => { initAudio(); startShooterGame(); };
+    window.startBattleship = () => { initAudio(); startBattleshipGame(); };
+
+    window.addEventListener("keydown", e => {
+        if(["Space", "ArrowUp", "ArrowDown", " "].includes(e.key)) e.preventDefault(); 
+        keys[e.key] = true;
+        if (e.key.toLowerCase() === 'r' && gameState === "GAMEOVER" && currentGame) currentGame();
+
+        // GESTION DU CODE SECRET ICAM
+        secretBuffer += e.key.toLowerCase();
+        if (secretBuffer.length > 4) secretBuffer = secretBuffer.slice(-4);
+        if (secretBuffer === 'icam') {
+            easterEggActive = !easterEggActive;
+            playerSprite = easterEggActive ? "🍺" : "🛩️";
+            playSound('powerup'); triggerShake();
+            secretBuffer = "";
+            alert(easterEggActive ? "MODE ICAM ACTIVÉ 🍻" : "RETOUR À LA NORMALE ✈️");
+        }
+    }, { passive: false });
+    window.addEventListener("keyup", e => { keys[e.key] = false; });
+    
+    canvas.addEventListener("mousemove", e => {
+        let rect = canvas.getBoundingClientRect();
+        mouseX = (e.clientX - rect.left) * (canvas.width / rect.width);
+        mouseY = (e.clientY - rect.top) * (canvas.height / rect.height);
+    });
+
+    // --- PARTICULES ---
+    class Particle {
+        constructor(x, y, color, speedModifier = 1) {
+            this.x = x; this.y = y; this.vx = (Math.random() - 0.5) * 8 * speedModifier; this.vy = (Math.random() - 0.5) * 8 * speedModifier;
+            this.life = 1.0; this.color = color; this.size = Math.random() * 4 + 1;
+        }
+        update() { this.x += this.vx; this.y += this.vy; this.life -= 0.04; }
+        draw() { ctx.globalAlpha = Math.max(0, this.life); ctx.fillStyle = this.color; ctx.beginPath(); ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2); ctx.fill(); ctx.globalAlpha = 1.0; }
+    }
+    function createExplosion(x, y, color = "#ff0055", count = 15, speedModifier = 1) {
+        for(let i=0; i<count; i++) particles.push(new Particle(x, y, color, speedModifier));
+        if (count >= 30) { triggerShake(); playSound('explosion'); } else if (count >= 10) { playSound('hit'); } 
+    }
+    function handleParticles() { particles.forEach((p, i) => { p.update(); p.draw(); if (p.life <= 0) particles.splice(i, 1); }); }
+
+    // --- FONCTIONS SYSTÈME ---
+    function updateScore(p) { score += p; document.getElementById("score").textContent = score; }
+    function setLevelDisplay(lvl, text="NIVEAU") {
+        currentInternalLvl = lvl; document.getElementById("level-display").style.display = "block";
+        document.getElementById("level-display").innerHTML = `${text} : <span id="level-num">${lvl}</span>`;
+    }
+    function resetGame(gameFunction, keepScore = false) {
+        if (animationId) cancelAnimationFrame(animationId);
+        if(!keepScore) { score = 0; currentInternalLvl = 1; }
+        gameState = "PLAYING"; currentGame = gameFunction; particles = [];
+        document.getElementById("score").textContent = score;
+        if(!keepScore) document.getElementById("level-display").style.display = "none";
+        canvas.onclick = null; ctx.globalAlpha = 1.0; document.activeElement.blur(); 
+        displayScores(currentGame.name.replace('Game','')); 
+    }
+    function showTransition(text, callback) {
+        gameState = "TRANSITION"; let alpha = 0; playSound('success');
+        function anim() {
+            ctx.fillStyle = `rgba(10, 10, 26, ${alpha})`; ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = `rgba(0, 240, 255, ${alpha * 2})`; ctx.font = "bold 40px 'Orbitron'"; ctx.textAlign = "center";
+            ctx.fillText(text, canvas.width / 2, canvas.height / 2);
+            alpha += 0.05; if (alpha < 1) requestAnimationFrame(anim); else setTimeout(callback, 800);
+        }
+        anim();
+    }
+    function gameOverScreen(title = "CRASH !") {
+        gameState = "GAMEOVER";
+        ctx.fillStyle = "rgba(10, 10, 26, 0.85)"; ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = "#ff0055"; ctx.font = "bold 50px 'Orbitron'"; ctx.textAlign = "center";
+        ctx.fillText(title, canvas.width / 2, canvas.height / 2 - 20);
+        ctx.fillStyle = "#00f0ff"; ctx.font = "30px 'Orbitron'"; ctx.fillText("SCORE : " + score, canvas.width / 2, canvas.height / 2 + 40);
+        ctx.fillStyle = "#e0e0ff"; ctx.font = "16px 'Orbitron'"; ctx.fillText("APPUIE SUR [R] POUR REESSAYER", canvas.width / 2, canvas.height / 2 + 100);
+        saveScore(); 
+    }
+    function drawClouds(clouds, speedMultiplier = 1) {
+        if(Math.random() < 0.02 * speedMultiplier) clouds.push({x: canvas.width + 50, y: Math.random() * 250, scale: Math.random() * 0.5 + 0.5});
+        ctx.fillStyle = "rgba(255, 255, 255, 0.7)";
+        clouds.forEach((c, i) => {
+            ctx.beginPath(); ctx.arc(c.x, c.y, 25 * c.scale, 0, Math.PI * 2); ctx.arc(c.x + 25 * c.scale, c.y + 10 * c.scale, 35 * c.scale, 0, Math.PI * 2); ctx.fill();
+            c.x -= (1.5 * speedMultiplier * c.scale); if (c.x < -100) clouds.splice(i, 1);
+        });
+    }
+
+    // =========================================
+    // 1. FLAPPY PLANE (Complet)
+    // =========================================
+    function startFlappyGame() {
+        resetGame(startFlappyGame);
+        let y = 250, velocity = 0, pipes = [], clouds = [];
+        let framesSinceLastPipe = 0; setLevelDisplay("∞", "MODE");
+
+        function loop() {
+            if (gameState !== "PLAYING") return;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            let bg = ctx.createLinearGradient(0,0,0,canvas.height); 
+            bg.addColorStop(0, easterEggActive ? "#4a2c11" : "#00c3ff"); 
+            bg.addColorStop(1, easterEggActive ? "#2b1a0a" : "#e0f2fe"); 
+            ctx.fillStyle = bg; ctx.fillRect(0,0,canvas.width,canvas.height);
+            drawClouds(clouds, 1 + score/1000);
+
+            if (keys[" "] || keys["ArrowUp"]) velocity = -6.5;
+            keys[" "] = false; keys["ArrowUp"] = false; velocity += 0.45; y += velocity;
+
+            ctx.save(); ctx.translate(180, y);
+            ctx.rotate(Math.min(Math.PI / 4, Math.max(-Math.PI / 4, (velocity * 0.1))));
+            ctx.font = "40px Arial"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+            ctx.fillText(playerSprite, 0, 0); ctx.restore();
+            
+            if(easterEggActive) particles.push(new Particle(180 - 20, y, `hsl(${Date.now() % 360}, 100%, 50%)`, 0.5));
+
+            let gapSize = Math.max(110, 170 - Math.floor(score/40)); 
+            let pipeSpeed = 5 + (score/150); framesSinceLastPipe++;
+            let spawnRate = Math.max(50, 85 - Math.floor(score/40)); 
+
+            if(framesSinceLastPipe >= spawnRate) {
+                let topH = Math.random() * (canvas.height - gapSize - 60) + 30;
+                pipes.push({ x: canvas.width, gap: gapSize, top: topH, passed: false }); framesSinceLastPipe = 0; 
+            }
+
+            pipes.forEach((p, i) => {
+                ctx.fillStyle = easterEggActive ? "#5d4037" : "#16a34a"; 
+                ctx.fillRect(p.x, 0, 70, p.top); ctx.fillRect(p.x, p.top + p.gap, 70, canvas.height);
+                ctx.strokeStyle = easterEggActive ? "#3e2723" : "#052e16"; 
+                ctx.lineWidth = 3; ctx.strokeRect(p.x, 0, 70, p.top); ctx.strokeRect(p.x, p.top + p.gap, 70, canvas.height);
+                p.x -= pipeSpeed;
+
+                if (180 + 15 > p.x && 180 - 15 < p.x + 70 && (y - 12 < p.top || y + 12 > p.top + p.gap)) {
+                    createExplosion(180, y, "#ff0055", 40, 3); gameOverScreen();
+                }
+                if (p.x < 180 && !p.passed && gameState === "PLAYING") { updateScore(10); p.passed = true; playSound('success'); }
+                if (p.x < -100) pipes.splice(i, 1);
+            });
+
+            if (y > canvas.height || y < 0) { createExplosion(180, y, "#ff0055", 40, 3); gameOverScreen(); }
+            handleParticles(); animationId = requestAnimationFrame(loop);
+        }
+        loop();
+    }
+
+    // =========================================
+    // 2. CARRIER LANDING (Complet, avec physique et Bar)
+    // =========================================
+    function startLandingGame(keepScore = false) {
+        resetGame(startLandingGame, keepScore);
+        setLevelDisplay(currentInternalLvl, "APPROCHE");
+        let x = 50, y = 100, speedX = 4, speedY = 0, clouds = [], obstacles = [];
+        let carrierSpeed = Math.min(4, 1 + currentInternalLvl * 0.2);
+        let windPower = Math.min(6, 1 + currentInternalLvl * 0.5);
+        let obsCount = currentInternalLvl >= 3 ? Math.floor(currentInternalLvl / 2) : 0;
+        let carrier = {x: Math.random() * 400 + 200, y: 350, w: 220, vx: carrierSpeed * (Math.random() > 0.5 ? 1 : -1)};
+        let wind = (Math.random() - 0.5) * windPower;
+
+        function loop() {
+            if (gameState !== "PLAYING") return;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            let bg = ctx.createLinearGradient(0,0,0,canvas.height);
+            if (easterEggActive) { bg.addColorStop(0, "#2d1b0d"); bg.addColorStop(1, "#1a0f06"); } 
+            else { bg.addColorStop(0, "#8da5c9"); bg.addColorStop(1, "#1e3a8a"); }
+            ctx.fillStyle = bg; ctx.fillRect(0,0,canvas.width,canvas.height);
+            
+            drawClouds(clouds, 0.5);
+
+            ctx.fillStyle = "rgba(0,0,0,0.6)"; ctx.fillRect(10, 10, 180, 40); 
+            ctx.fillStyle = windPower > 4 ? "#ff0055" : "#00f0ff";
+            ctx.font = "14px 'Orbitron'"; ctx.textAlign = "left"; 
+            ctx.fillText(`VENT: ${Math.abs(wind).toFixed(1)} ${wind > 0 ? "👉" : "👈"}`, 20, 35);
+
+            if(Math.abs(carrier.vx) > 0) { carrier.x += carrier.vx; if(carrier.x < 100 || carrier.x > canvas.width - 250) carrier.vx *= -1; }
+            
+            if (easterEggActive) { // Le Bar
+                ctx.fillStyle = "#5d4037"; ctx.fillRect(carrier.x, carrier.y, carrier.w, 40); 
+                ctx.fillStyle = "#3e2723"; ctx.fillRect(carrier.x, carrier.y, carrier.w, 10);
+                ctx.fillStyle = "#bdc3c7"; ctx.fillRect(carrier.x + carrier.w - 50, carrier.y - 40, 15, 40); 
+                ctx.fillRect(carrier.x + carrier.w - 65, carrier.y - 40, 20, 10); 
+                ctx.fillStyle = "rgba(255, 255, 255, 0.2)"; ctx.fillRect(carrier.x + 30, carrier.y, carrier.w - 60, 5);
+            } else { // Le Porte-Avions
+                ctx.fillStyle = "#0f172a"; ctx.fillRect(0, 380, canvas.width, canvas.height);
+                ctx.fillStyle = "#334155"; ctx.beginPath(); ctx.moveTo(carrier.x, carrier.y); 
+                ctx.lineTo(carrier.x + carrier.w, carrier.y); ctx.lineTo(carrier.x + carrier.w - 30, carrier.y + 35); ctx.lineTo(carrier.x + 30, carrier.y + 35); ctx.fill();
+                ctx.beginPath(); ctx.setLineDash([15, 10]); ctx.moveTo(carrier.x + 20, carrier.y + 17); ctx.lineTo(carrier.x + carrier.w - 20, carrier.y + 17);
+                ctx.lineWidth = 2; ctx.strokeStyle = "#cbd5e1"; ctx.stroke(); ctx.setLineDash([]);
+                ctx.fillStyle = "#475569"; ctx.fillRect(carrier.x + carrier.w - 60, carrier.y - 30, 40, 30);
+                ctx.fillStyle = "rgba(255, 0, 85, 0.6)"; ctx.fillRect(carrier.x + 30, carrier.y + 5, carrier.w - 60, 5);
+            }
+
+            if(currentInternalLvl >= 3 && Math.random() < Math.min(0.06, 0.02 * obsCount)) obstacles.push({x: canvas.width + 50, y: Math.random()*250 + 50, vx: -3 - (currentInternalLvl*0.2)});
+            obstacles.forEach((o, i) => {
+                o.x += o.vx; ctx.font = "24px Arial"; ctx.fillText(easterEggActive ? "🥜" : "👾", o.x, o.y); 
+                if(Math.hypot(x - o.x, y - o.y) < 25) { createExplosion(x, y, "#ff0055", 50, 4); gameOverScreen(easterEggActive ? "VERRE BRISÉ !" : "DÉTRUIT !"); }
+                if(o.x < -50) obstacles.splice(i, 1);
+            });
+
+            if (keys["ArrowUp"]) { speedY -= 0.18; particles.push(new Particle(x, y + 15, easterEggActive ? "#fff" : "orange", 0.5)); }
+            if (keys["ArrowDown"]) speedY += 0.18; if (keys["ArrowRight"]) speedX += 0.12; if (keys["ArrowLeft"]) speedX -= 0.12;
+            speedY += 0.06; speedX *= 0.98; speedY *= 0.98; x += speedX + wind; y += speedY;
+
+            ctx.font = "40px Arial"; ctx.textAlign = "center"; ctx.textBaseline = "middle"; 
+            ctx.fillText(playerSprite, x, y);
+            if(easterEggActive) particles.push(new Particle(x - 10, y + 10, "white", 0.3)); 
+
+            if (y > 330 && y < 360 && x > carrier.x + 30 && x < carrier.x + carrier.w - 30) {
+                if (Math.abs(speedY) < 2.5 && Math.abs((speedX + wind) - carrier.vx) < 3.5) {
+                    updateScore(300 + currentInternalLvl*100); createExplosion(x, y, easterEggActive ? "#ffd700" : "#00f0ff", 30, 1);
+                    currentInternalLvl++; showTransition(easterEggActive ? "SANTÉ !" : `APPROCHE ${currentInternalLvl}`, () => startLandingGame(true)); return;
+                } else { createExplosion(x, y, "#ff0055", 50, 4); gameOverScreen(easterEggActive ? "BIÈRE RENVERSÉE !" : "TROP RAPIDE !"); }
+            } else if (y > 370 || x > canvas.width || x < 0) {
+                createExplosion(x, Math.min(y, 380), "#ff0055", 50, 4); gameOverScreen(easterEggActive ? "DANS LE DÉCOR !" : "PLOUF !");
+            }
+            handleParticles(); animationId = requestAnimationFrame(loop);
+        }
+        loop();
+    }
+
+    // =========================================
+    // 3. AIR BATTLESHIP (Complet, Radar + Sonar)
+    // =========================================
+    function startBattleshipGame(keepScore = false) {
+        resetGame(startBattleshipGame, keepScore);
+        setLevelDisplay(currentInternalLvl, "ZONE");
+        let gridSize = Math.min(12, 4 + Math.floor((currentInternalLvl-1)/2)*2);
+        let gridPixelSize = 400; let cellSize = Math.floor(gridPixelSize / gridSize);
+        let ammo = Math.floor(gridSize * gridSize * 0.75);
+        let offsetX = (canvas.width - (gridSize * cellSize)) / 2; let offsetY = 45;
+        let enemyBoard = []; let hitsRequired = 0;
+        let lastPing = 0; 
+
+        for(let i=0; i<gridSize; i++) {
+            enemyBoard[i] = [];
+            for(let j=0; j<gridSize; j++) {
+                let isShip = Math.random() < 0.20 ? 1 : 0; enemyBoard[i][j] = isShip;
+                if (isShip) hitsRequired++;
+            }
+        }
+        if(hitsRequired === 0) { enemyBoard[0][0] = 1; hitsRequired = 1; }
+
+        canvas.onclick = e => {
+            if (gameState !== "PLAYING") return;
+            let gridX = Math.floor((mouseX - offsetX) / cellSize); let gridY = Math.floor((mouseY - offsetY) / cellSize);
+
+            if (gridX >= 0 && gridX < gridSize && gridY >= 0 && gridY < gridSize && enemyBoard[gridY][gridX] <= 1) {
+                ammo--; let cx = offsetX + gridX*cellSize + cellSize/2; let cy = offsetY + gridY*cellSize + cellSize/2;
+                if(enemyBoard[gridY][gridX] === 1) {
+                    updateScore(150); enemyBoard[gridY][gridX] = 2; hitsRequired--;
+                    createExplosion(cx, cy, "#ff0033", 40, 3); 
+                    if(hitsRequired <= 0) {
+                        updateScore(ammo * 50 + gridSize * 100); currentInternalLvl++;
+                        setTimeout(() => showTransition(`ZONE ${currentInternalLvl}`, () => startBattleshipGame(true)), 400); return;
+                    }
+                } else { enemyBoard[gridY][gridX] = 3; updateScore(-20); playSound('hit'); } 
+
+                if(ammo <= 0 && hitsRequired > 0) {
+                    for(let i=0; i<gridSize; i++) for(let j=0; j<gridSize; j++) if(enemyBoard[i][j]===1) enemyBoard[i][j]=2;
+                    setTimeout(() => gameOverScreen("MANQUE DE MUNITIONS !"), 800);
+                }
+            }
+        };
+
+        function loop() {
+            if (gameState !== "PLAYING" && particles.length === 0) return;
+            ctx.fillStyle = "#000500"; ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            ctx.fillStyle = hitsRequired > 5 ? "#00ff00" : "#ff0033"; 
+            ctx.font = "bold 16px 'Orbitron'"; ctx.textAlign = "left";
+            ctx.fillText(`CIBLES: ${hitsRequired} | MISSILES: ${ammo}`, offsetX, offsetY - 15);
+
+            let time = performance.now() / 400; 
+            let currentAngle = time % (Math.PI * 2);
+            if (currentAngle < lastPing) playSound('sonar');
+            lastPing = currentAngle;
+
+            let cx = offsetX + (gridSize * cellSize) / 2; let cy = offsetY + (gridSize * cellSize) / 2; let radius = (gridSize * cellSize) * 0.7; 
+            
+            ctx.save(); ctx.translate(cx, cy); ctx.rotate(time); 
+            for (let i = 0; i < 40; i++) {
+                ctx.beginPath(); ctx.moveTo(0, 0);
+                let angleStart = -i * 0.04; let angleEnd = -(i + 1) * 0.04; ctx.arc(0, 0, radius, angleStart, angleEnd, true);
+                let opacity = Math.max(0, 0.5 - (i * 0.0125));
+                let grad = ctx.createRadialGradient(0, 0, 0, 0, 0, radius);
+                grad.addColorStop(0, `rgba(0, 255, 0, ${opacity})`); grad.addColorStop(1, `rgba(0, 255, 0, 0)`);
+                ctx.fillStyle = grad; ctx.fill();
+            }
+            ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(radius, 0); ctx.strokeStyle = "rgba(0, 255, 0, 0.9)"; ctx.lineWidth = 3; ctx.stroke(); ctx.restore();
+
+            let hoverX = Math.floor((mouseX - offsetX) / cellSize); let hoverY = Math.floor((mouseY - offsetY) / cellSize);
+            for(let i=0; i<gridSize; i++) {
+                for(let j=0; j<gridSize; j++) {
+                    let cellX = offsetX + j*cellSize; let cellY = offsetY + i*cellSize;
+                    ctx.strokeStyle = "rgba(0, 255, 0, 0.3)"; ctx.lineWidth = 1; ctx.strokeRect(cellX, cellY, cellSize, cellSize);
+                    if (j === hoverX && i === hoverY && enemyBoard[i][j] <= 1) { ctx.fillStyle = "rgba(0, 255, 0, 0.2)"; ctx.fillRect(cellX, cellY, cellSize, cellSize); }
+                    if(enemyBoard[i][j] === 2) { 
+                        ctx.fillStyle = Math.sin(time * 10) > 0 ? "#ff0033" : "#aa0000"; ctx.fillRect(cellX + 2, cellY + 2, cellSize - 4, cellSize - 4);
+                        ctx.fillStyle = "#fff"; ctx.font = "20px Arial"; ctx.textAlign="center"; ctx.textBaseline="middle"; ctx.fillText("🎯", cellX + cellSize/2, cellY + cellSize/2);
+                    }
+                    if(enemyBoard[i][j] === 3) { 
+                        ctx.strokeStyle = "rgba(0, 100, 0, 0.8)"; ctx.lineWidth = 2; ctx.beginPath();
+                        ctx.moveTo(cellX + 10, cellY + 10); ctx.lineTo(cellX + cellSize - 10, cellY + cellSize - 10);
+                        ctx.moveTo(cellX + cellSize - 10, cellY + 10); ctx.lineTo(cellX + 10, cellY + cellSize - 10); ctx.stroke();
+                    }
+                }
+            }
+            handleParticles(); animationId = requestAnimationFrame(loop);
+        }
+        loop();
+    }
+
+    // =========================================
+    // 4. DRONE BATTLE (Complet, Boss, Power-ups, Easter Egg)
+    // =========================================
+    function startShooterGame(keepScore = false) {
+        resetGame(startShooterGame, keepScore);
+        setLevelDisplay(currentInternalLvl, "WAVE");
+        let x = canvas.width / 2, bullets = [], drones = [], asteroids = [], clouds = [], powerups = [];
+        let lastShot = 0; let boss = null; let bossPhase = false; let dronesKilledThisWave = 0; 
+
+        let hasShield = false; let activeWeapon = 'normal'; let activeWeaponTimer = 0;
+
+        function loop() {
+            if (gameState !== "PLAYING") {
+                if(particles.length > 0) { ctx.fillStyle="rgba(10,10,26,0.2)"; ctx.fillRect(0,0,canvas.width,canvas.height); handleParticles(); requestAnimationFrame(loop); }
+                return;
+            }
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            let bg = ctx.createLinearGradient(0,0,0,canvas.height);
+            if (easterEggActive) { bg.addColorStop(0, "#2d1b0d"); bg.addColorStop(1, "#1a0f06"); } 
+            else { bg.addColorStop(0, Math.sin(Date.now()/5000)>0 ? "#0f172a" : "#2e1025"); bg.addColorStop(1, "#334155"); }
+            ctx.fillStyle = bg; ctx.fillRect(0,0,canvas.width,canvas.height);
+            drawClouds(clouds, 1 + currentInternalLvl/3);
+
+            let now = Date.now();
+
+            if (dronesKilledThisWave >= 15 + (currentInternalLvl * 5) && !bossPhase) {
+                bossPhase = true; let bossHp = 20 + Math.pow(currentInternalLvl, 1.5)*15;
+                boss = {x: canvas.width/2, y: -100, hp: bossHp, maxHp: bossHp, vx: Math.min(8, 3 + currentInternalLvl), lastShot: 0};
+                createExplosion(450, -50, easterEggActive ? "#fff" : "#00f0ff", 50, 4); playSound('explosion');
+            }
+
+            if (keys["ArrowLeft"] && x > 20) x -= 8; if (keys["ArrowRight"] && x < canvas.width - 20) x += 8;
+            
+            if (keys[" "] && now - lastShot > 130) {
+                let bY = 440;
+                if (activeWeapon === 'triple' && now - activeWeaponTimer < 8000) {
+                    bullets.push({x: x - 15, y: bY, vx: -2}, {x: x, y: bY-10, vx: 0}, {x: x + 15, y: bY, vx: 2});
+                } else {
+                    activeWeapon = 'normal';
+                    bullets.push({x: x - 15, y: bY, vx: 0}, {x: x + 15, y: bY, vx: 0});
+                }
+                lastShot = now; createExplosion(x, 450, easterEggActive ? "#ffd700" : "#00f0ff", 3, 0.2); playSound('shoot'); 
+            }
+
+            ctx.font = "40px Arial"; ctx.textAlign = "center"; ctx.textBaseline = "middle"; 
+            ctx.fillText(easterEggActive ? "🔨" : playerSprite, x, 460);
+            
+            if (hasShield) {
+                ctx.beginPath(); ctx.arc(x, 460, 35, 0, Math.PI*2);
+                ctx.strokeStyle = easterEggActive ? "#fff" : "#00f0ff"; ctx.lineWidth = 3; ctx.stroke();
+                ctx.fillStyle = easterEggActive ? "rgba(255,255,255,0.2)" : "rgba(0, 240, 255, 0.2)"; ctx.fill();
+            }
+
+            function takeDamage() {
+                if (hasShield) {
+                    hasShield = false; createExplosion(x, 460, easterEggActive ? "#fff" : "#00f0ff", 30, 2); playSound('hit'); return false;
+                } else {
+                    createExplosion(x, 460, "#ff0055", 60, 4); gameOverScreen(easterEggActive ? "SOIRÉE TERMINÉE !" : "DÉTRUIT !"); return true;
+                }
+            }
+
+            if (!bossPhase && Math.random() < 0.003 * (1 + currentInternalLvl * 0.1)) {
+                let types = ['shield', 'triple', 'bomb']; powerups.push({x: Math.random()*(canvas.width-60)+30, y: -30, type: types[Math.floor(Math.random()*types.length)]});
+            }
+            powerups.forEach((p, i) => {
+                p.y += 2.5; ctx.font = "30px Arial"; ctx.fillText(p.type === 'shield' ? "🛡️" : p.type === 'triple' ? "🔫" : "💣", p.x, p.y);
+                if (Math.abs(p.x - x) < 30 && Math.abs(p.y - 460) < 30) {
+                    playSound('powerup');
+                    if (p.type === 'shield') hasShield = true;
+                    if (p.type === 'triple') { activeWeapon = 'triple'; activeWeaponTimer = now; }
+                    if (p.type === 'bomb') {
+                        playSound('bomb'); triggerShake();
+                        drones.forEach(d => { createExplosion(d.x, d.y, easterEggActive ? "#fff" : "#ff0055", 15, 2); updateScore(50); dronesKilledThisWave++; });
+                        drones = [];
+                    }
+                    powerups.splice(i, 1);
+                }
+            });
+
+            if (bossPhase && boss) {
+                if (boss.y < 80) boss.y += 1.5;
+                else {
+                    boss.x += boss.vx; if (boss.x < 50 || boss.x > canvas.width - 50) boss.vx *= -1;
+                    if (now - boss.lastShot > (900 / Math.min(2.5, 1 + currentInternalLvl*0.2))) { 
+                        asteroids.push({x: boss.x, y: boss.y + 40, type: 'laser'}); boss.lastShot = now; playSound('shoot'); 
+                    }
+                }
+                ctx.font = "80px Arial"; ctx.fillText(easterEggActive ? "🧔" : "🛸", boss.x, boss.y); 
+                ctx.fillStyle = "#ff0055"; ctx.fillRect(boss.x - 50, boss.y - 50, 100, 10);
+                ctx.fillStyle = easterEggActive ? "#ffd700" : "#00f0ff"; ctx.fillRect(boss.x - 50, boss.y - 50, (boss.hp / boss.maxHp) * 100, 10);
+                if (Math.abs(boss.x - x) < 50 && Math.abs(boss.y - 460) < 50) takeDamage();
+            } else if (!bossPhase) {
+                if(Math.random() < 0.02 * (1+currentInternalLvl*0.3)) drones.push({x: Math.random()*(canvas.width-80)+40, y: -40, hp: Math.ceil(currentInternalLvl/2)});
+                if(currentInternalLvl > 1 && Math.random() < 0.015 * currentInternalLvl) asteroids.push({x: Math.random()*canvas.width, y: -40, type: 'rock'});
+            }
+
+            bullets.forEach((b, i) => {
+                b.x += b.vx; b.y -= 14; 
+                if(easterEggActive) { ctx.font = "18px Arial"; ctx.fillText("🪙", b.x, b.y); } 
+                else { ctx.fillStyle = "#00f0ff"; ctx.shadowBlur = 10; ctx.shadowColor = "#00f0ff"; ctx.fillRect(b.x - 2, b.y, 4, 18); ctx.shadowBlur = 0; }
+                
+                if (bossPhase && boss && b.x > boss.x - 40 && b.x < boss.x + 40 && b.y > boss.y - 40 && b.y < boss.y + 40) {
+                    boss.hp--; bullets.splice(i, 1); createExplosion(b.x, b.y, easterEggActive ? "#fff" : "#00f0ff", 8, 1.5);
+                    if (boss.hp <= 0) {
+                        updateScore(1000 * currentInternalLvl); 
+                        createExplosion(boss.x, boss.y, easterEggActive ? "#ffd700" : "#ff0055", 150, 6); boss = null; bossPhase = false;
+                        currentInternalLvl++; setTimeout(() => showTransition(easterEggActive ? "TOURNÉE GÉNÉRALE !" : `WAVE ${currentInternalLvl}`, () => startShooterGame(true)), 600); return;
+                    }
+                }
+                if (b.y < -30) bullets.splice(i, 1);
+            });
+
+            drones.forEach((d, i) => {
+                d.y += (3 + currentInternalLvl/3); ctx.font = d.hp > 1 ? "40px Arial" : "30px Arial"; 
+                ctx.fillText(easterEggActive ? "🥤" : "🚁", d.x, d.y);
+                if (Math.abs(d.x - x) < 25 && Math.abs(d.y - 460) < 25) { if(!takeDamage()) { d.hp = 0; } }
+                bullets.forEach((b, j) => {
+                    if(b.x > d.x - 25 && b.x < d.x + 25 && b.y > d.y - 25 && b.y < d.y + 25) {
+                        d.hp--; bullets.splice(j, 1); createExplosion(b.x, b.y, easterEggActive ? "#fff" : "#ff0055", 12, 1);
+                        if (d.hp <= 0) { updateScore(50); dronesKilledThisWave++; drones.splice(i, 1); }
+                    }
+                });
+                if (d.y > canvas.height + 40) drones.splice(i, 1);
+            });
+
+            asteroids.forEach((a, i) => {
+                a.y += (a.type === 'laser' ? 8 : 4 + currentInternalLvl/3); 
+                ctx.font = a.type === 'laser' ? "35px Arial" : "40px Arial";
+                if(a.type === 'laser') { 
+                    if(easterEggActive) ctx.fillText("🍋", a.x, a.y); 
+                    else { ctx.shadowBlur=10; ctx.shadowColor="#ff0055"; ctx.fillStyle="#ff0055"; ctx.fillText("⚡", a.x, a.y); ctx.shadowBlur=0; }
+                } else { ctx.fillText(easterEggActive ? "🧊" : "🪨", a.x, a.y); }
+                if (Math.abs(a.x - x) < 25 && Math.abs(a.y - 460) < 25) { if(!takeDamage()) { a.y = 999; } }
+                if (a.y > canvas.height + 40) asteroids.splice(i, 1);
+            });
+
+            handleParticles(); animationId = requestAnimationFrame(loop);
+        }
+        loop();
+    }
+
+    // --- FIREBASE SCORE (Sauvegarde et Classement Actif) ---
+    async function saveScore() {
+        if (score <= 0) return;
+        let playerName = document.getElementById("playerName").value || "Pilote Icam";
+        
+        // Nom du jeu nettoyé (pour que Firebase sépare les classements)
+        let gameKey = currentGame ? currentGame.name.replace('start', '').replace('Game', '') : "Unknown";
+
+        try {
+            // Regarde si le joueur a déjà un score sur CE jeu
+            const q = query(collection(db, "scores"), where("name", "==", playerName));
+            const querySnapshot = await getDocs(q);
+            let existingDoc = null;
+            querySnapshot.forEach((d) => { if (d.data().game === gameKey) existingDoc = d; });
+
+            if (existingDoc) {
+                // Si le nouveau score est meilleur, on met à jour !
+                if (score > existingDoc.data().score) {
+                    await updateDoc(doc(db, "scores", existingDoc.id), { score: score, level: currentInternalLvl, timestamp: Date.now() });
+                }
+            } else {
+                // Sinon on crée un nouveau record
+                await addDoc(collection(db, "scores"), { name: playerName, score: score, level: currentInternalLvl, game: gameKey, timestamp: Date.now() });
+            }
+            displayScores(gameKey); 
+        } catch (e) { console.error("Erreur d'enregistrement Firebase : ", e); }
+    }
+
+    async function displayScores(filterGame = null) {
+        let list = document.getElementById("scores");
+        let titleElement = document.getElementById("leaderboard-title");
+        list.innerHTML = "<li class='score-item' style='border: none; background: transparent; justify-content:center; color: #a0a0b0;'>📡 Chargement Serveur...</li>";
+        
+        titleElement.innerHTML = filterGame && gameNames["start" + filterGame] ? `🏆 Top Pilotes - ${gameNames["start" + filterGame]}` : `🏆 Top Pilotes (Général)`;
+
+        try {
+            const querySnapshot = await getDocs(collection(db, "scores"));
+            let scoresData = [];
+            querySnapshot.forEach((doc) => { scoresData.push(doc.data()); });
+            if (filterGame) scoresData = scoresData.filter(s => s.game === filterGame);
+            scoresData.sort((a, b) => b.score - a.score);
+
+            list.innerHTML = "";
+            if (scoresData.length === 0) { list.innerHTML = `<li class='score-item' style='border: none; background: transparent; justify-content:center; color: #a0a0b0;'>Aucun record. Soyez le premier !</li>`; return; }
+
+            scoresData.slice(0, 10).forEach((s, index) => {
+                let li = document.createElement("li"); li.className = "score-item";
+                let medal = index === 0 ? "🥇" : index === 1 ? "🥈" : index === 2 ? "🥉" : "👾";
+                let gameTag = !filterGame && gameNames["start" + s.game] ? ` <span style="color:#a0a0b0; font-size:10px;">(${gameNames["start" + s.game]})</span>` : "";
+                li.innerHTML = `<span>${medal} <strong>${s.name}</strong>${gameTag}</span> <span class="highlight-score">${s.score.toLocaleString()} PTS</span>`;
+                list.appendChild(li);
+            });
+        } catch (e) { list.innerHTML = "<li class='score-item' style='color: #ff0055; justify-content:center;'>🚨 Connexion base de données échouée</li>"; }
+    }
+
+    // Affichage initial
+    displayScores(); 
+    ctx.fillStyle = "#050510"; ctx.fillRect(0,0,canvas.width, canvas.height);
+    ctx.fillStyle = "#ffaa00"; ctx.font = "bold 42px 'Orbitron'"; ctx.textAlign = "center";
+    ctx.shadowBlur = 15; ctx.shadowColor = "#ffaa00"; ctx.fillText("AVIAT'ICAM : SYSTÈME PRÊT", canvas.width/2, canvas.height/2); ctx.shadowBlur = 0; 
+    ctx.fillStyle = "#e0e0ff"; ctx.font = "18px 'Orbitron'"; ctx.fillText("CHOISISSEZ UN JEU EN HAUT", canvas.width/2, canvas.height/2 + 55);
+</script>
+</body>
+</html>
